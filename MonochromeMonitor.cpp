@@ -1,4 +1,4 @@
-#include "UO_Client.h"
+#include "UOClient.h"
 #include <string.h>
 
 extern "C" {

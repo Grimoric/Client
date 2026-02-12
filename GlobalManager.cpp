@@ -1,4 +1,4 @@
-#include "UO_Client.h"
+#include "UOClient.h"
 
 extern "C" {
     // 018a4b8c: Central global object pointer

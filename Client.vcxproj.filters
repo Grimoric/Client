@@ -21,13 +21,13 @@
     <ClCompile Include="UOReport.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MemoryManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ResourceSearch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MonochromeMonitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GlobalManager.cpp">
@@ -35,7 +35,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="UO_Client.h">
+    <ClInclude Include="UOClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

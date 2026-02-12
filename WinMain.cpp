@@ -1,4 +1,4 @@
-#include "UO_Client.h"
+#include "UOClient.h"
 
 extern "C" {
     int data_141c0a8 = 0;

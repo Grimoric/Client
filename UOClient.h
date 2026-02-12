@@ -1,10 +1,12 @@
-#ifndef UO_CLIENT_H
-#define UO_CLIENT_H
+#ifndef UOCLIENT_H
+#define UOCLIENT_H
 
 #include <windows.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
+
+#pragma warning(disable : 4996)
 
 /* --- Global Data References --- */
 extern "C" {
@@ -66,7 +68,7 @@ extern "C" {
     void* __fastcall sub_5f8930(void* pThis, void* dummyEDX);
     void* __fastcall sub_64a830(void* pThis, void* dummyEDX, uint8_t flag);
     void __fastcall sub_5f8960(void* pThis, void* dummyEDX);
-    void sub_5f8990(void* pThis);
+    void __fastcall sub_5f8990(void* pThis, void* dummyEDX);
     void sub_64a7d0();
 }
 
