@@ -16,7 +16,7 @@ char    data_18a3374[2048]; // String Formatting Buffer
 FILE* data_18a3b74 = NULL;  // Active Log File Handle
 extern "C" FILE* itow_alias; // Global pointer to stdout/stderr
 
-/* sub_63b7d0: UOReport::start - Initializes logging and handles file creation */
+/* UOReport::start - Initializes logging and handles file creation */
 void sub_63b7d0(void) {
     char filename[256];
     const char* mode = "wt";
@@ -57,7 +57,7 @@ void sub_63b7d0(void) {
     sub_63bcc0("UOReport: started.\n");
 }
 
-/* sub_63ba80: UOReport::stop - Cleanup and closure of file handles */
+/* UOReport::stop - Cleanup and closure of file handles */
 void sub_63ba80(void) {
     if (data_18a3370 == 0 || data_18a3371 != 0) return;
 
@@ -69,7 +69,7 @@ void sub_63ba80(void) {
     data_18a3371 = 1;
 }
 
-/* sub_63be20: UOReport_Router - Routes messages to file, console, or monitor */
+/* UOReport_Router - Routes messages to file, console, or monitor */
 void sub_63be20(const char* arg1, const char* arg2) {
     if (!data_18a3370) sub_63b7d0();
 
@@ -86,7 +86,7 @@ void sub_63be20(const char* arg1, const char* arg2) {
     }
 }
 
-/* sub_63bd60: Internal Formatter using vsnprintf */
+/* Internal Formatter using vsnprintf */
 void sub_63bd60(const char* prefix, const char* format, va_list args) {
     if (!prefix && !format) return;
     data_18a3374[0] = '\0';
@@ -98,6 +98,16 @@ void sub_63bcc0(const char* format, ...) {
     data_82cfcc = 0x15;
     va_list args; va_start(args, format);
     sub_63bd60("UOReport::message: ", format, args);
+    va_end(args);
+}
+
+/* sub_63bd10: Raw log function (No hardcoded prefix) */
+void sub_63bd10(const char* format, ...) {
+    data_82cfcc = 0x15;
+    va_list args;
+    va_start(args, format);
+    // data_7a8fa8 was identified as empty string ""
+    sub_63bd60("", format, args);
     va_end(args);
 }
 

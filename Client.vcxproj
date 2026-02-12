@@ -23,7 +23,9 @@
     <ClInclude Include="UOReport.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="MemoryManager.cpp" />
     <ClCompile Include="MonochromeMonitor.cpp" />
+    <ClCompile Include="ResourceSearch.cpp" />
     <ClCompile Include="UISystem.cpp" />
     <ClCompile Include="UOReport.cpp" />
     <ClCompile Include="WinMain.cpp" />
