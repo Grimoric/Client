@@ -1,61 +1,59 @@
-#include "types.h"
+#include "UO_Client.h"
 #include <string.h>
 
-/* Global State Definitions (Owned by this module) */
 extern "C" {
-    int32_t data_829a68 = 0;       /* Monitor status code/state */
-    uint8_t data_1417304 = 0;       /* Initialization flag */
-    int32_t data_14182b0 = 0;       /* Base memory address (usually 0xB0000) */
-    int32_t data_1417308 = 0;       /* Current cursor column (X) */
-    int32_t data_141730c = 0;       /* Current cursor row (Y) */
-    uint8_t data_14182b4 = 0;       /* Auto-scroll enabled flag */
-    uint8_t data_1417310[4000] = { 0 }; /* Virtual text buffer (80x25 * 2 bytes) */
+    uint8_t  data_1417304 = 0;
+    uint32_t data_14182b0 = 0;
+    int32_t  data_829a68 = 0;
+    uint8_t  data_14182b4 = 0;
+    int32_t  data_1417308 = 0;
+    int32_t  data_141730c = 0;
+    uint8_t  data_1417310[4000] = { 0 };
 }
 
-/* Forward declarations for internal routing */
-extern "C" void sub_63bbd0(const char* format, ...); /* UOReport_Error */
-extern "C" void sub_5bc800(void);                    /* Monitor_ResetCursor */
-extern "C" void sub_5bc8a0(void);                    /* Monitor_ScrollBuffer */
-
-/* sub_5bc800: Resets the monitor cursor to the top-left (0,0) */
-extern "C" void sub_5bc800(void) {
+/* 005bc800: Reset cursor to top-left */
+void sub_5bc800() {
     data_1417308 = 0;
     data_141730c = 0;
 }
 
-/* sub_5bc8a0: Scrolls the buffer up by one line and clears the bottom line */
-extern "C" void sub_5bc8a0(void) {
-    /* Move lines 1-24 to 0-23 (160 bytes per line) */
-    memcpy(&data_1417310[0], &data_1417310[160], 3840);
-    /* Clear the last line */
+/* 005bc8a0: Scroll screen content up by one row */
+void sub_5bc8a0() {
+    // Move rows 1-24 to 0-23
+    // Offset for row 1: 80 * 1 * 2 = 160 (0xA0)
+    // 0x1417310 + 0xA0 = 0x14173B0
+    memcpy(&data_1417310[0], &data_1417310[160], 3950);
+
+    // Clear the last row (Row 24)
+    // 0x1417310 + (24 * 80 * 2) = 0x1417310 + 3840 (0xF00) = 0x1418210
     memset(&data_1417310[3840], 0, 160);
 
     data_1417308 = 0;
     data_141730c = 24;
 }
 
-/* sub_5bc930: Hardware-level putchar. Handles line breaks and buffer overflows. */
-extern "C" void sub_5bc930(char c) {
-    /* Handle Newline (LF) */
+/* 005bc930: Internal putchar with wrap/scroll logic */
+void sub_5bc930(char arg1) {
+    uint8_t c = (uint8_t)arg1;
+
     if (c == 0x0A) {
         data_1417308 = 0;
         data_141730c++;
         if (data_141730c == 25) {
-            if (data_14182b4) sub_5bc8a0(); else sub_5bc800();
+            if (data_14182b4) sub_5bc8a0();
+            else sub_5bc800();
         }
         return;
     }
 
-    /* Calculate 1D offset from 2D coordinates (X,Y) */
-    int32_t offset = (data_141730c * 80 + data_1417308) << 1;
+    int32_t offset = ((data_141730c * 80) + data_1417308) * 2;
 
     if (offset >= 4000) {
-        sub_63bbd0("MonochromeMonitor::putchar: offset >= 4000\n");
+        sub_63bbd0("MonochromeMonitor::putchar: offset >= SCREEN_WIDTH * SCREEN_HEIGHT * 2\n");
         sub_5bc800();
     }
     else {
-        /* Write character and attribute (0x07 = Light Gray on Black) */
-        data_1417310[offset] = (uint8_t)c;
+        data_1417310[offset] = c;
         data_1417310[offset + 1] = 0x07;
 
         data_1417308++;
@@ -63,21 +61,34 @@ extern "C" void sub_5bc930(char c) {
             data_1417308 = 0;
             data_141730c++;
         }
+    }
 
-        if (data_141730c == 25) {
-            if (data_14182b4) sub_5bc8a0(); else sub_5bc800();
-        }
+    if (data_141730c == 25) {
+        if (data_14182b4) sub_5bc8a0();
+        else sub_5bc800();
     }
 }
 
-/* sub_5bc830: Clears the entire monitor with space characters */
-extern "C" void sub_5bc830(void) {
-    for (int i = 0; i < 2000; i++) sub_5bc930(0x20); /* 0x20 = Space */
+void sub_5bc830() {
+    for (int i = 0; i < 25; i++) {
+        for (int j = 0; j < 80; j++) {
+            sub_5bc930(0x20);
+        }
+    }
     sub_5bc800();
 }
 
-/* sub_5bca70: Prints a null-terminated string to the monitor */
-extern "C" void sub_5bca70(const char* text) {
-    if (!text) return;
-    while (*text) sub_5bc930(*text++);
+void sub_5bc6e0() {
+    if (data_1417304 == 0) {
+        data_14182b0 = 0xb0000;
+        sub_5bc830();
+        data_1417304 = 1;
+    }
+}
+
+int32_t sub_5bc7c0() { return data_829a68; }
+void sub_5bc7e0() {}
+void sub_5bca70(const char* arg1) {
+    if (!arg1) return;
+    for (const char* p = arg1; *p; p++) sub_5bc930(*p);
 }

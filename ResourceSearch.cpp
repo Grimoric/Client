@@ -1,87 +1,82 @@
-#include "types.h"
-#include "UOReport.h"
 #include <windows.h>
+#include <tlhelp32.h>
 #include <string.h>
-
-/* Constants and structures defined locally to ensure ANSI compatibility
-   regardless of project SDK settings. */
-#define TH32CS_SNAPPROCESS 0x00000002
-
-struct struct_PROCESSENTRY32A {
-    DWORD dwSize;
-    DWORD cntUsage;
-    DWORD th32ProcessID;
-    ULONG_PTR th32DefaultHeapID;
-    DWORD th32ModuleID;
-    DWORD cntThreads;
-    DWORD th32ParentProcessID;
-    LONG  pcPriClassBase;
-    DWORD dwFlags;
-    CHAR  szExeFile[MAX_PATH];
-};
-
-typedef HANDLE(WINAPI* FN_CreateToolhelp32Snapshot)(DWORD, DWORD);
-typedef BOOL(WINAPI* FN_Process32FirstA)(HANDLE, struct_PROCESSENTRY32A*);
-typedef BOOL(WINAPI* FN_Process32NextA)(HANDLE, struct_PROCESSENTRY32A*);
+#include "UO_Client.h"
 
 extern "C" {
-    int32_t data_141c0a8 = 0;
+    // Definition av globala variabler som används i WinMain
     char data_1419a50[256] = { 0 };
-
-    FN_CreateToolhelp32Snapshot data_18a4254 = NULL;
-    FN_Process32FirstA           data_18a4250 = NULL;
-    FN_Process32NextA            data_18a424c = NULL;
+    void* data_18a4254 = NULL; // CreateToolhelp32Snapshot
+    void* data_18a4250 = NULL; // Process32First
+    void* data_18a424c = NULL; // Process32Next
 }
 
-#pragma warning(disable : 4996) /* Disable GetVersion deprecation warning */
+// Funktionspekare för att matcha disassemblyns dynamiska laddning
+typedef HANDLE(WINAPI* P_CT32S)(DWORD, DWORD);
+typedef BOOL(WINAPI* P_P32F)(HANDLE, LPPROCESSENTRY32);
+typedef BOOL(WINAPI* P_P32N)(HANDLE, LPPROCESSENTRY32);
 
-/* sub_64a880: Enumerates system processes to identify the current executable name. */
-extern "C" void sub_64a880(void) {
+void sub_64a880() {
+    // Hämtar version för OS-kontroll (Disassembly 0064a88c)
+#pragma warning(push)
+#pragma warning(disable : 4996)
     DWORD dwVersion = GetVersion();
+#pragma warning(pop)
 
-    /* OS Compatibility check (matching binary 0064a89b) */
-    if ((dwVersion & 0xFF) <= 4) return;
+    // Dynamisk laddning av kernel32 för att hämta Toolhelp-funktioner
+    HMODULE hKernel = LoadLibraryA("kernel32.dll");
+    if (hKernel == NULL) return;
 
-    /* Resolve Toolhelp32 functions from kernel32.dll at runtime */
-    HMODULE hKernel = GetModuleHandleA("kernel32.dll");
-    if (hKernel) {
-        data_18a4254 = (FN_CreateToolhelp32Snapshot)GetProcAddress(hKernel, "CreateToolhelp32Snapshot");
-        data_18a4250 = (FN_Process32FirstA)GetProcAddress(hKernel, "Process32First");
-        data_18a424c = (FN_Process32NextA)GetProcAddress(hKernel, "Process32Next");
+    data_18a4254 = (void*)GetProcAddress(hKernel, "CreateToolhelp32Snapshot");
+    data_18a4250 = (void*)GetProcAddress(hKernel, "Process32First");
+    data_18a424c = (void*)GetProcAddress(hKernel, "Process32Next");
+
+    if (!data_18a4254 || !data_18a4250 || !data_18a424c) {
+        FreeLibrary(hKernel);
+        return;
     }
 
-    if (!data_18a4254 || !data_18a4250 || !data_18a424c) return;
+    FreeLibrary(hKernel);
 
     DWORD myPid = GetCurrentProcessId();
-    HANDLE hSnapshot = data_18a4254(TH32CS_SNAPPROCESS, 0);
+    DWORD parentPid = 0;
 
-    if (hSnapshot != INVALID_HANDLE_VALUE) {
-        struct_PROCESSENTRY32A pe32;
-        memset(&pe32, 0, sizeof(pe32));
-        pe32.dwSize = sizeof(struct_PROCESSENTRY32A);
+    // Skapa snapshot av processer (Disassembly 0064a95d)
+    HANDLE hSnapshot = ((P_CT32S)data_18a4254)(TH32CS_SNAPPROCESS, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) return;
 
-        if (data_18a4250(hSnapshot, &pe32)) {
+    PROCESSENTRY32 pe;
+    memset(&pe, 0, sizeof(pe));
+    pe.dwSize = sizeof(pe);
+
+    // Iterera för att hitta nuvarande process och dess förälder
+    if (((P_P32F)data_18a4250)(hSnapshot, &pe)) {
+        do {
+            if (pe.th32ProcessID == myPid) {
+                parentPid = pe.th32ParentProcessID;
+                break;
+            }
+            pe.dwSize = sizeof(pe);
+        } while (((P_P32N)data_18a424c)(hSnapshot, &pe));
+    }
+
+    // Om förälder hittades, hämta dess filnamn (Disassembly 0064aa1e)
+    if (parentPid != 0) {
+        pe.dwSize = sizeof(pe);
+        if (((P_P32F)data_18a4250)(hSnapshot, &pe)) {
             do {
-                if (pe32.th32ProcessID == myPid) {
-                    /* Strip path to isolate the filename */
-                    char* fileName = strrchr(pe32.szExeFile, '\\');
-                    if (fileName) {
-                        fileName++;
-                    }
-                    else {
-                        fileName = pe32.szExeFile;
-                    }
+                if (pe.th32ProcessID == parentPid) {
+                    char* lastSlash = strrchr(pe.szExeFile, '\\');
+                    const char* fileName = (lastSlash != NULL) ? lastSlash + 1 : pe.szExeFile;
 
-                    /* Copy to global BSS buffer (max 192 bytes per 0xC0 limit) */
+                    // Kopiera till global buffert (Disassembly 0064aa63)
                     strncpy(data_1419a50, fileName, 0xC0);
-
-                    /* RE-ENGINEERING LOGGING: Verification for reconstructed build */
-                    sub_63bcc0("ResourceSearch: Identified process name as '%s'\n", data_1419a50);
-
                     break;
                 }
-            } while (data_18a424c(hSnapshot, &pe32));
+                pe.dwSize = sizeof(pe);
+            } while (((P_P32N)data_18a424c)(hSnapshot, &pe));
         }
-        CloseHandle(hSnapshot);
     }
+
+    CloseHandle(hSnapshot);
 }
