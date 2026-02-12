@@ -1,22 +1,51 @@
+#ifndef TYPES_H
+#define TYPES_H
+
 #pragma once
 
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
+#include <stdint.h>
+#include <stddef.h>
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <stdio.h>
-#include <stdarg.h>
 
-/* Standard integer types for 1999-era MSVC compatibility */
-typedef signed char        int8_t;
-typedef short              int16_t;
-typedef int                int32_t;
-typedef long long          int64_t;
+typedef uint8_t  uchar;
+typedef uint8_t  uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef int8_t   int8;
+typedef int16_t  int16;
+typedef int32_t  int32;
 
-typedef unsigned char      uint8_t;
-typedef unsigned short     uint16_t;
-typedef unsigned int       uint32_t;
-typedef unsigned long long uint64_t;
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
 
-typedef int32_t            BOOL32;
+#ifndef STDCALL
+#define STDCALL  __stdcall
+#endif
+
+#ifndef CDECL
+#define CDECL    __cdecl
+#endif
+
+#ifndef FASTCALL
+#define FASTCALL __fastcall
+#endif
+
+/* Simplified linkage macros to assist IntelliSense */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	/* Common external globals used across modules */
+	extern FILE* itow_alias;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* TYPES_H */
